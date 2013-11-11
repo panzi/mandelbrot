@@ -1,5 +1,5 @@
-WIDTH=1920
-HEIGHT=1280
+WIDTH=30720
+HEIGHT=17280
 TILE_SIZE=320
 CC = gcc
 CFLAGS = -lm -Wall -Werror -Wextra -pedantic -std=c99 -O3
@@ -33,3 +33,4 @@ tiles/Makefile: ./tiles.sh
 clean:
 	rm mandelbrot
 	rm -r tiles
+	rm -r viewer

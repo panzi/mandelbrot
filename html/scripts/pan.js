@@ -28,6 +28,7 @@ var Pan = (function (undefined) {
 			elment.detachEvent('on'+eventName, callback._eventHandlerWrapper);
 		};
 
+	// TODO: support touch
 	var elementEvents = {
 		mousedown: function (event) {
 			this.classList.add('panning');
