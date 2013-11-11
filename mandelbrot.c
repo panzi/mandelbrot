@@ -1,3 +1,5 @@
+// original: http://preshing.com/20110926/high-resolution-mandelbrot-in-obfuscated-python/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdio.h>
