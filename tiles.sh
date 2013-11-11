@@ -12,7 +12,7 @@ mkdir -p tiles
 	printf 'TILE='
 	for i in $(seq 0 $n); do
 		for j in $(seq 0 $m); do
-			printf ' tile-1-%d-%d' $i $j
+			printf ' tile-%d-%d' $j $i
 		done
 	done
 	echo
@@ -35,8 +35,8 @@ mkdir -p tiles
 		x=$(($i*$tile_size))
 		for j in $(seq 0 $m); do
 			y=$(($j*$tile_size))
-			printf 'tile-1-%d-%d.bmp:\n\t../mandelbrot %d %d $@ %d %d %d %d\n\n' \
-				$i $j $width $height $x $y $tile_size $tile_size
+			printf 'tile-%d-%d.bmp:\n\t../mandelbrot %d %d $@ %d %d %d %d\n\n' \
+				$j $i $width $height $x $y $tile_size $tile_size
 		done
 	done
 
@@ -44,7 +44,7 @@ mkdir -p tiles
 	printf '\trm -f'
 	for i in $(seq 0 $n); do
 		for j in $(seq 0 $m); do
-			printf ' tile-1-%d-%d.png tile-1-%d-%d.bmp' $i $j $i $j
+			printf ' tile-%d-%d.png tile-%d-%d.bmp' $j $i $j $i
 		done
 	done
 	echo

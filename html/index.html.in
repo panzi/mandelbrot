@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+<title>Mandelbrot</title>
+<link rel="stylesheet" href="styles/pan.css"/>
+<style type="text/css">
+html, body {
+	margin: 0;
+	padding: 0;
+	background: black;
+	overflow: hidden;
+}
+</style>
+<script type="text/javascript" src="scripts/pan.js"></script>
+<script type="text/javascript">
+// <![CDATA[
+window.onload = function () {
+	Pan.create('#viewer', {
+		tilePattern: 'tiles/tile-{y}-{x}.png',
+		tileSize: @TILE_SIZE@,
+		imageWidth: @WIDTH@,
+		imageHeight: @HEIGHT@
+	});
+};
+// ]]>
+</script>
+</head>
+<body>
+<div id="viewer" class="imageViewer"></div>
+</body>
+</html>

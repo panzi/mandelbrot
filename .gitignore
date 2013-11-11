@@ -3,6 +3,6 @@
 *.bmp
 *.png
 tiles
-html
+viewer
 tmp
 *.bz2
