@@ -20,7 +20,8 @@ window.onload = function () {
 		tilePattern: 'tiles/tile-{y}-{x}.png',
 		tileSize: @TILE_SIZE@,
 		imageWidth: @WIDTH@,
-		imageHeight: @HEIGHT@
+		imageHeight: @HEIGHT@,
+		hash: true
 	});
 };
 // ]]>

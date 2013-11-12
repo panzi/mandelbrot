@@ -1,8 +1,9 @@
 WIDTH=30720
 HEIGHT=17280
+#SIZES=30720 17280
 TILE_SIZE=320
-CC = gcc
-CFLAGS = -lm -Wall -Werror -Wextra -pedantic -std=c99 -O3
+CC=gcc
+CFLAGS=-lm -Wall -Werror -Wextra -pedantic -std=c99 -O3
 
 .PHONY: all clean tiles viewer
 
