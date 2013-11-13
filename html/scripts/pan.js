@@ -116,11 +116,11 @@ var Pan = (function (undefined) {
 						var dx = (event.movementX || event.webkitMovementX || event.mozMovementX || 0)*scale;
 						var dy = (event.movementY || event.webkitMovementY || event.mozMovementY || 0)*scale;
 
-						pan(element, {x: pos.x - dx, y: pos.y - dy, z: z}, options);
+						pan(element, {x: pos.x - dx, y: pos.y - dy, z: z});
 					}
 					else {
 						var start = element._panning.start;
-						pan(element, {x: start.x - event.pageX*scale, y: start.y - event.pageY*scale, z: z}, options);
+						pan(element, {x: start.x - event.pageX*scale, y: start.y - event.pageY*scale, z: z});
 					}
 				}
 			}
@@ -148,10 +148,9 @@ var Pan = (function (undefined) {
 			for (var i = 0; i < viewers.length; ++ i) {
 				var element = viewers[i];
 				var panner  = element.querySelector('.panner');
-				var options = element._panning.options;
 				var pos = Pan.position(element);
 				element._panning.size = {width: element.offsetWidth, height: element.offsetHeight};
-				pan(element, pos, options);
+				pan(element, pos);
 			}
 		},
 		hashchange: function (event) {
@@ -176,7 +175,7 @@ var Pan = (function (undefined) {
 					var curr = Pan.position(element);
 					if (curr.x === x && curr.y === y && curr.z === z) return;
 
-					pan(element, {x: x, y: y, z: z}, options);
+					pan(element, {x: x, y: y, z: z});
 				}
 			}
 		}
@@ -301,7 +300,7 @@ var Pan = (function (undefined) {
 				element.webkitRequestPointerLock ||
 				element.mozRequestPointerLock;
 
-			pan(element, {x: x, y: y, z: z}, options);
+			pan(element, {x: x, y: y, z: z});
 		},
 		destroy: function (element) {
 			if (typeof element === 'string') {
@@ -344,17 +343,17 @@ var Pan = (function (undefined) {
 		var maxZ = options.imageSizes.length - 1;
 		if (element._panning.zoom >= maxZ) return;
 		var pos = Pan.eventPosition(element,event,element._panning.zoom + 1);
-		pan(element, pos, options);
+		pan(element, pos);
 	}
 	
 	function zoomOut (element,event) {
 		if (element._panning.zoom <= 0) return;
-		var options = element._panning.options;
 		var pos = Pan.eventPosition(element,event,element._panning.zoom - 1);
-		pan(element, pos, options);
+		pan(element, pos);
 	}
 
-	function pan (element, offset, options) {
+	function pan (element, offset) {
+		var options = element._panning.options;
 		var z = offset.z;
 		if (isNaN(z) || z < 0) {
 			z = 0;
