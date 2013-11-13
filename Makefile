@@ -1,4 +1,4 @@
-SIZES=960,540 1920,1080 3840,2160 7680,4320 15360,8640 30720,17280
+SIZES=960,540 1920,1080 3840,2160 7680,4320 15360,8640 30720,17280 61440,34560
 TILE_SIZE=320
 CC=gcc
 CFLAGS=-lm -Wall -Werror -Wextra -pedantic -std=c99 -O3
@@ -13,11 +13,17 @@ mandelbrot: mandelbrot.c
 tiles: tiles/Makefile mandelbrot
 	$(MAKE) -C tiles
 
-# TODO: make this more precise
-viewer: viewer/index.html tiles
-	cp -r html/styles html/scripts viewer
+viewer: viewer/index.html viewer/styles/pan.css viewer/scripts/pan.js tiles
 	mkdir -p viewer/tiles
-	cp tiles/*.png viewer/tiles
+	$(MAKE) -C tiles viewer
+
+viewer/styles/pan.css: html/styles/pan.css
+	mkdir -p viewer/styles
+	cp html/styles/pan.css viewer/styles/pan.css
+
+viewer/scripts/pan.js: html/scripts/pan.js
+	mkdir -p viewer/scripts
+	cp html/scripts/pan.js viewer/scripts/pan.js
 
 viewer/index.html: html/index.html.in Makefile
 	mkdir -p viewer
