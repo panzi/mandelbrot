@@ -299,7 +299,7 @@ var Pan = (function (undefined) {
 		var imgs = element._panning.images;
 		var tagged = {};
 
-		var fmtargs = {z: z};
+		var fmtargs = {zoom: z};
 		for (var j = j0; j < m; ++ j) {
 			fmtargs.y = j;
 			for (var i = i0; i < n; ++ i) {
