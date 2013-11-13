@@ -212,115 +212,6 @@ var Pan = (function (undefined) {
 	on(document, 'webkitpointerlockchange', pointerLockChanged);
 	on(document, 'mozpointerlockchange', pointerLockChanged);
 
-	var Pan = {
-		position: function (element) {
-			if (typeof element === 'string') {
-				element = document.querySelector(element);
-			}
-			var panner = element.querySelector('.panner');
-			var size = element._panning.size;
-			var z = element._panning.zoom;
-			var options = element._panning.options;
-			var scale = options.imageSizes[options.imageSizes.length - 1][0] / options.imageSizes[z][0];
-			var x = (size.width/2  - panner.offsetLeft) * scale;
-			var y = (size.height/2 - panner.offsetTop)  * scale;
-			return {x: x, y: y, z: z};
-		},
-		eventPosition: function (element, event, zoom) {
-			var rect = element.getBoundingClientRect();
-			var x = event.clientX - rect.left;
-			var y = event.clientY - rect.top;
-			var panner = element.querySelector('.panner');
-			var size = element._panning.size;
-			var z = element._panning.zoom;
-			var options = element._panning.options;
-			var imageWidth = options.imageSizes[options.imageSizes.length - 1][0];
-			var scale = imageWidth / options.imageSizes[z][0];
-			if (x >= 0 && x < rect.width && y >= 0 && y < rect.height) {
-				var scale2 = imageWidth / options.imageSizes[zoom][0];
-				var x2 = (x - panner.offsetLeft) * scale;
-				var y2 = (y - panner.offsetTop)  * scale;
-				x = x2 + (size.width/2  - x) * scale2;
-				y = y2 + (size.height/2 - y) * scale2;
-			}
-			else {
-				x = (size.width/2  - panner.offsetLeft) * scale;
-				y = (size.height/2 - panner.offsetTop)  * scale;
-			}
-			return {x: x, y: y, z: zoom};
-		},
-		create: function (element, options) {
-			if (typeof element === 'string') {
-				element = document.querySelector(element);
-			}
-
-			for (var eventName in elementEvents) {
-				on(element, eventName, elementEvents[eventName]);
-			}
-
-			viewers.push(element);
-
-			element._panning = {
-				options: options,
-				images:  {},
-				size:    {width: element.offsetWidth, height: element.offsetHeight},
-				zoom:    0
-			};
-
-			var panner = document.createElement('div');
-			panner.className = 'panner';
-			panner.style.position = 'absolute';
-			panner.style.left = '0';
-			panner.style.top = '0';
-			element.appendChild(panner);
-			var x = NaN, y = NaN, z = 0;
-			
-			if (options.hash) {
-				var pos = location.hash.replace(/^#?!/,'').split(',');
-				x = Number(pos[0]);
-				y = Number(pos[1]);
-				z = Math.round(Number(pos[2]));
-			}
-
-			if (isNaN(z) || z < 0) {
-				z = 0;
-			}
-			else if (z >= options.imageSizes.length) {
-				z = options.imageSizes.length - 1;
-			}
-
-			if (isNaN(x) || isNaN(y)) {
-				var size = options.imageSizes[options.imageSizes.length - 1];
-				x = Math.round(size[0]/2);
-				y = Math.round(size[1]/2);
-			}
-
-			element.requestPointerLock =
-				element.requestPointerLock ||
-				element.webkitRequestPointerLock ||
-				element.mozRequestPointerLock;
-
-			pan(element, {x: x, y: y, z: z});
-		},
-		destroy: function (element) {
-			if (typeof element === 'string') {
-				element = document.querySelector(element);
-			}
-			
-			for (var eventName in elementEvents) {
-				off(element, eventName, elementEvents[eventName]);
-			}
-
-			element.innerHTML = '';
-			element._panning = null;
-
-			var index = viewers.indexOf(element);
-			if (index > -1) {
-				viewers.splice(index, 1);
-			}
-		}
-	};
-
 	function format (fmt, map) {
 		var args = arguments;
 		var index = 1;
@@ -449,6 +340,116 @@ var Pan = (function (undefined) {
 			location.hash = '#!'+Math.round((whalf+x)*scale)+','+Math.round((hhalf+y)*scale)+','+z;
 		}
 	}
+	
+	var Pan = {
+		position: function (element) {
+			if (typeof element === 'string') {
+				element = document.querySelector(element);
+			}
+			var panner = element.querySelector('.panner');
+			var size = element._panning.size;
+			var z = element._panning.zoom;
+			var options = element._panning.options;
+			var scale = options.imageSizes[options.imageSizes.length - 1][0] / options.imageSizes[z][0];
+			var x = (size.width/2  - panner.offsetLeft) * scale;
+			var y = (size.height/2 - panner.offsetTop)  * scale;
+			return {x: x, y: y, z: z};
+		},
+		eventPosition: function (element, event, zoom) {
+			var rect = element.getBoundingClientRect();
+			var x = event.clientX - rect.left;
+			var y = event.clientY - rect.top;
+			var panner = element.querySelector('.panner');
+			var size = element._panning.size;
+			var z = element._panning.zoom;
+			var options = element._panning.options;
+			var imageWidth = options.imageSizes[options.imageSizes.length - 1][0];
+			var scale = imageWidth / options.imageSizes[z][0];
+			if (x >= 0 && x < rect.width && y >= 0 && y < rect.height) {
+				var scale2 = imageWidth / options.imageSizes[zoom][0];
+				var x2 = (x - panner.offsetLeft) * scale;
+				var y2 = (y - panner.offsetTop)  * scale;
+				x = x2 + (size.width/2  - x) * scale2;
+				y = y2 + (size.height/2 - y) * scale2;
+			}
+			else {
+				x = (size.width/2  - panner.offsetLeft) * scale;
+				y = (size.height/2 - panner.offsetTop)  * scale;
+			}
+			return {x: x, y: y, z: zoom};
+		},
+		create: function (element, options) {
+			if (typeof element === 'string') {
+				element = document.querySelector(element);
+			}
+
+			for (var eventName in elementEvents) {
+				on(element, eventName, elementEvents[eventName]);
+			}
+
+			viewers.push(element);
+
+			element._panning = {
+				options: options,
+				images:  {},
+				size:    {width: element.offsetWidth, height: element.offsetHeight},
+				zoom:    0
+			};
+
+			var panner = document.createElement('div');
+			panner.className = 'panner';
+			panner.style.position = 'absolute';
+			panner.style.left = '0';
+			panner.style.top = '0';
+			element.appendChild(panner);
+			var x = NaN, y = NaN, z = 0;
+			
+			if (options.hash) {
+				var pos = location.hash.replace(/^#?!/,'').split(',');
+				x = Number(pos[0]);
+				y = Number(pos[1]);
+				z = Math.round(Number(pos[2]));
+			}
+
+			if (isNaN(z) || z < 0) {
+				z = 0;
+			}
+			else if (z >= options.imageSizes.length) {
+				z = options.imageSizes.length - 1;
+			}
+
+			if (isNaN(x) || isNaN(y)) {
+				var size = options.imageSizes[options.imageSizes.length - 1];
+				x = Math.round(size[0]/2);
+				y = Math.round(size[1]/2);
+			}
+
+			element.requestPointerLock =
+				element.requestPointerLock ||
+				element.webkitRequestPointerLock ||
+				element.mozRequestPointerLock;
+
+			pan(element, {x: x, y: y, z: z});
+		},
+		move: pan,
+		destroy: function (element) {
+			if (typeof element === 'string') {
+				element = document.querySelector(element);
+			}
+			
+			for (var eventName in elementEvents) {
+				off(element, eventName, elementEvents[eventName]);
+			}
+
+			element.innerHTML = '';
+			element._panning = null;
+
+			var index = viewers.indexOf(element);
+			if (index > -1) {
+				viewers.splice(index, 1);
+			}
+		}
+	};
 
 	return Pan;
 })();
