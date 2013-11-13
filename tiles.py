@@ -17,12 +17,16 @@ def tiles(fp,tile_size,sizes):
 TILE=%s
 BMP=$(patsubst %%,%%.bmp,$(TILE))
 PNG=$(patsubst %%,%%.png,$(TILE))
+VIEWER=$(patsubst %%,../viewer/tiles/%%,$(PNG))
 
 .PHONY: all clean viewer
 
 all: $(PNG)
 
-viewer: $(patsubst %%,../viewer/tiles/%%,$(PNG))
+viewer: $(VIEWER)
+
+$(VIEWER): ../viewer/tiles/%%: %%
+	cp $< $@
 
 $(PNG): %%.png: %%.bmp
 	convert $< $@
