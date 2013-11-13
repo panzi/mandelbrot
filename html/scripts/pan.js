@@ -12,36 +12,79 @@ var Pan = (function (undefined) {
 					if (!evt.preventDefault) evt.preventDefault = function () {
 						this.returnValue = false;
 					};
-					if (!evt.preventDefault) evt.stopPropagation = function () {
+					if (!evt.stopPropagation) evt.stopPropagation = function () {
 						this.cancelBubble = true;
 					};
-					callback(evt);
+					callback.call(element,evt);
 				};
 			}
-			elment.attachEvent('on'+eventName, callback._eventHandlerWrapper);
+			element.attachEvent('on'+eventName, callback._eventHandlerWrapper);
 		};
 	var off = document.removeEventListener ?
 		function (element, eventName, callback) {
 			element.removeEventListener(eventName, callback, false);
 		} :
 		function (element, eventName, callback) {
-			elment.detachEvent('on'+eventName, callback._eventHandlerWrapper);
+			element.detachEvent('on'+eventName, callback._eventHandlerWrapper);
 		};
+
+	var hasClass, addClass, removeClass;
+	if (document.documentElement.classList) {
+		hasClass = function (element, className) {
+			return element.classList.contains(className);
+		};
+
+		addClass = function (element, className) {
+			return element.classList.add(className);
+		};
+
+		removeClass = function (element, className) {
+			return element.classList.remove(className);
+		};
+	}
+	else {
+		hasClass = function (element, className) {
+			var classNames = element.className.trim().split(/\s+/);
+			for (var i = 0; i < classNames.length; ++ i) {
+				if (classNames[i] === className) return true;
+			}
+			return false;
+		};
+
+		addClass = function (element, className) {
+			element.className += ' '+className;
+		};
+
+		removeClass = function (element, className) {
+			var classNames = element.className.trim().split(/\s+/);
+			var removed = [];
+			for (var i = 0; i < classNames.length; ++ i) {
+				var thisClassName = classNames[i];
+				if (thisClassName !== className) removed.push(thisClassName);
+			}
+			element.className = removed.join(' ');
+		};
+	}
 
 	// TODO: support touch
 	var elementEvents = {
 		mousedown: function (event) {
-			if (('buttons' in event && event.buttons !== 1) ||
-				('which' in event && event.which !== 1) ||
+			if (('buttons' in event ?
+					!(event.buttons & 1) :
+					'which' in event ?
+						event.which !== 1 :
+						'button' in event ?
+							event.button !== 1 :
+							false) ||
 				event.shiftKey || event.metaKey || event.ctrlKey || event.altKey) {
 				return;
 			}
-			this.classList.add('panning');
+			addClass(this,'panning');
 			var pos = Pan.position(this);
 			var options = this._panning.options;
 			var z       = this._panning.zoom;
 			var scale   = options.imageSizes[options.imageSizes.length - 1][0] / options.imageSizes[z][0];
-			this._panning.start = {x: pos.x + event.pageX*scale, y: pos.y + event.pageY*scale, z: z};
+			this._panning.start = {x: pos.x + event.clientX*scale, y: pos.y + event.clientY*scale, z: z};
 
 			if (this.requestPointerLock) {
 				this.requestPointerLock();
@@ -66,12 +109,13 @@ var Pan = (function (undefined) {
 	}
 	else if ('onmousewheel' in document) {
 		elementEvents.mousewheel = function (event) {
+			var delta = 'wheelDeltaY' in event ? event.wheelDeltaY : event.wheelDelta;
 			for (var i = 0; i < viewers.length; ++ i) {
 				var element = viewers[i];
-				if (event.wheelDeltaY < 0) {
+				if (delta < 0) {
 					zoomOut(this,event);
 				}
-				else if (event.wheelDeltaY > 0) {
+				else if (delta > 0) {
 					zoomIn(this,event);
 				}
 			}
@@ -97,53 +141,6 @@ var Pan = (function (undefined) {
 
 
 	var windowEvents = {
-		mousemove: function (event) {
-			var active = false;
-			var pointerLockElement =
-				document.pointerLockElement ||
-				document.webkitPointerLockElement ||
-				document.mozPointerLockElement;
-
-			for (var i = 0; i < viewers.length; ++ i) {
-				var element = viewers[i];
-				if (element.classList.contains('panning')) {
-					active = true;
-					var options = element._panning.options;
-					var z       = element._panning.zoom;
-					var scale   = options.imageSizes[options.imageSizes.length - 1][0] / options.imageSizes[z][0];
-					if (element === pointerLockElement) {
-						var pos = Pan.position(element);
-						var dx = (event.movementX || event.webkitMovementX || event.mozMovementX || 0)*scale;
-						var dy = (event.movementY || event.webkitMovementY || event.mozMovementY || 0)*scale;
-
-						pan(element, {x: pos.x - dx, y: pos.y - dy, z: z});
-					}
-					else {
-						var start = element._panning.start;
-						pan(element, {x: start.x - event.pageX*scale, y: start.y - event.pageY*scale, z: z});
-					}
-				}
-			}
-			if (active) {
-				event.preventDefault();
-				event.stopPropagation();
-			}
-		},
-		mouseup: function (event) {
-			var pointerLockElement =
-				document.pointerLockElement ||
-				document.webkitPointerLockElement ||
-				document.mozPointerLockElement;
-
-			for (var i = 0; i < viewers.length; ++ i) {
-				var element = viewers[i];
-				element.classList.remove('panning');
-				if (element === pointerLockElement) {
-					document.exitPointerLock();
-					pointerLockElement = null;
-				}
-			}
-		},
 		resize: function (event) {
 			for (var i = 0; i < viewers.length; ++ i) {
 				var element = viewers[i];
@@ -208,9 +205,63 @@ var Pan = (function (undefined) {
 		document.mozExitPointerLock ||
 		document.webkitExitPointerLock;
 
-	on(document, 'pointerlockchange', pointerLockChanged);
-	on(document, 'webkitpointerlockchange', pointerLockChanged);
-	on(document, 'mozpointerlockchange', pointerLockChanged);
+	var documentEvents = {
+		mousemove: function (event) {
+			var active = false;
+			var pointerLockElement =
+				document.pointerLockElement ||
+				document.webkitPointerLockElement ||
+				document.mozPointerLockElement;
+
+			for (var i = 0; i < viewers.length; ++ i) {
+				var element = viewers[i];
+				if (hasClass(element,'panning')) {
+					active = true;
+					var options = element._panning.options;
+					var z       = element._panning.zoom;
+					var scale   = options.imageSizes[options.imageSizes.length - 1][0] / options.imageSizes[z][0];
+					if (element === pointerLockElement) {
+						var pos = Pan.position(element);
+						var dx = (event.movementX || event.webkitMovementX || event.mozMovementX || 0)*scale;
+						var dy = (event.movementY || event.webkitMovementY || event.mozMovementY || 0)*scale;
+
+						pan(element, {x: pos.x - dx, y: pos.y - dy, z: z});
+					}
+					else {
+						var start = element._panning.start;
+						var pos = {x: start.x - event.clientX*scale, y: start.y - event.clientY*scale, z: z};
+						pan(element, pos);
+					}
+				}
+			}
+			if (active) {
+				event.preventDefault();
+				event.stopPropagation();
+			}
+		},
+		mouseup: function (event) {
+			var pointerLockElement =
+				document.pointerLockElement ||
+				document.webkitPointerLockElement ||
+				document.mozPointerLockElement;
+
+			for (var i = 0; i < viewers.length; ++ i) {
+				var element = viewers[i];
+				removeClass(element,'panning');
+				if (element === pointerLockElement) {
+					document.exitPointerLock();
+					pointerLockElement = null;
+				}
+			}
+		},
+		pointerlockchange: pointerLockChanged,
+		webkitpointerlockchange: pointerLockChanged,
+		mozpointerlockchange: pointerLockChanged
+	};
+
+	for (var eventName in documentEvents) {
+		on(document, eventName, documentEvents[eventName]);
+	}
 
 	function format (fmt, map) {
 		var args = arguments;
@@ -259,9 +310,9 @@ var Pan = (function (undefined) {
 		var imageHeight = size[1];
 		var scale       = options.imageSizes[options.imageSizes.length - 1][0] / imageWidth;
 		var pattern     = options.tilePattern;
-		var size = element._panning.size;
-		var w = size.width;
-		var h = size.height;
+		var elementSize = element._panning.size;
+		var w = elementSize.width;
+		var h = elementSize.height;
 		var panner = element.querySelector('.panner');
 
 		var whalf = Math.round(w/2);
@@ -365,7 +416,7 @@ var Pan = (function (undefined) {
 			var options = element._panning.options;
 			var imageWidth = options.imageSizes[options.imageSizes.length - 1][0];
 			var scale = imageWidth / options.imageSizes[z][0];
-			if (x >= 0 && x < rect.width && y >= 0 && y < rect.height) {
+			if (x >= 0 && x < element.offsetWidth && y >= 0 && y < element.offsetHeight) {
 				var scale2 = imageWidth / options.imageSizes[zoom][0];
 				var x2 = (x - panner.offsetLeft) * scale;
 				var y2 = (y - panner.offsetTop)  * scale;
