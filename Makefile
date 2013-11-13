@@ -1,6 +1,4 @@
-WIDTH=30720
-HEIGHT=17280
-#SIZES=30720 17280
+SIZES=960,540 1920,1080 3840,2160 7680,4320 15360,8640 30720,17280
 TILE_SIZE=320
 CC=gcc
 CFLAGS=-lm -Wall -Werror -Wextra -pedantic -std=c99 -O3
@@ -21,15 +19,12 @@ viewer: viewer/index.html tiles
 	mkdir -p viewer/tiles
 	cp tiles/*.png viewer/tiles
 
-viewer/index.html: html/index.html.in
+viewer/index.html: html/index.html.in Makefile
 	mkdir -p viewer
-	cat $< | \
-		replace @TILE_SIZE@ $(TILE_SIZE) | \
-		replace @WIDTH@ $(WIDTH) | \
-		replace @HEIGHT@ $(HEIGHT) > $@
+	SIZES="$(SIZES)" TILE_SIZE="$(TILE_SIZE)" ./expand.py html/index.html.in viewer/index.html
 
-tiles/Makefile: ./tiles.sh
-	./tiles.sh $(WIDTH) $(HEIGHT) $(TILE_SIZE)
+tiles/Makefile: ./tiles.py
+	./tiles.py $(TILE_SIZE) $(SIZES)
 
 clean:
 	rm mandelbrot

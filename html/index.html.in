@@ -17,10 +17,11 @@ html, body {
 // <![CDATA[
 window.onload = function () {
 	Pan.create('#viewer', {
-		tilePattern: 'tiles/tile-{y}-{x}.png',
+		tilePattern: 'tiles/tile-{zoom}-{y}-{x}.png',
 		tileSize: @TILE_SIZE@,
-		imageWidth: @WIDTH@,
-		imageHeight: @HEIGHT@,
+		imageSizes: "@SIZES@".trim().split(/\s+/).map(function (size) {
+			return size.split(",").map(Number);
+		}),
 		hash: true
 	});
 };

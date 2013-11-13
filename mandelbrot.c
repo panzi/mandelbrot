@@ -13,7 +13,7 @@ double complex Y(double complex V, double complex B, double complex c) {
 
 int main(int argc, char *argv[]) {
 	if (argc < 4) return 1;
-	unsigned int w = strtoul(argv[1],NULL,10), h = strtoul(argv[2],NULL,10), X, A,
+	unsigned int w = strtoul(argv[1],NULL,10), h = strtoul(argv[2],NULL,10), A,
 		x1 = 0, x2 = w, y1 = 0, y2 = h, x, y, iw = w, ih = h;
 	if (!w || w >= 0xffff || w % 4 != 0) {
 		fprintf(stderr,"illegal width: %s\n", argv[1]);
@@ -28,10 +28,34 @@ int main(int argc, char *argv[]) {
 		y1 = strtoul(argv[5],NULL,10);
 		iw = strtoul(argv[6],NULL,10);
 		ih = strtoul(argv[7],NULL,10);
+		if (x1 >= w) {
+			fprintf(stderr,"illegal x: %s\n", argv[4]);
+			return 1;
+		}
+		if (y1 >= h) {
+			fprintf(stderr,"illegal x: %s\n", argv[5]);
+			return 1;
+		}
+		if (!iw || iw >= 0xffff) {
+			fprintf(stderr,"illegal area width: %s\n", argv[6]);
+			return 1;
+		}
+		if (!ih || ih >= 0xffff) {
+			fprintf(stderr,"illegal area height: %s\n", argv[7]);
+			return 1;
+		}
 		x2 = x1 + iw;
 		y2 = y1 + ih;
+		if (x2 > w) {
+			x2 = w;
+			iw = x2 - x1;
+		}
+		if (y2 > h) {
+			y2 = h;
+			ih = y2 - y1;
+		}
 	}
-	unsigned int S = (iw*ih)*3+26;
+	unsigned int S = (iw*ih)*3+26, hhalf = h/2;
 	FILE *f = fopen(argv[3],"wb");
 	if (!f) {
 		perror(argv[3]);
@@ -42,11 +66,9 @@ int main(int argc, char *argv[]) {
 	for (y = y2; y > y1;) {
 		-- y;
 		for (x = x1; x < x2; ++ x) {
-			X = (h - y - 1) * w + x;
-
 			double complex T = 0, t;
 			for (A = 0; A < 9; ++ A) {
-				t = Y(0,(A % 3 / 3. + X % w + (X/w + A/3/3. - h/2) / 1*I) * 2.5 / h - 2.7, 255);
+				t = Y(0,(A % 3 / 3. + x + (y + A/3/3. - hhalf) / 1*I) * 2.5 / h - 2.7, 255);
 				T += t*t;
 			}
 			T /= 9;

@@ -1,51 +1,53 @@
 #!/bin/bash
 
-width=$1
-height=$2
-tile_size=$3
-n=$(($width/$tile_size-1))
-m=$(($height/$tile_size-1))
+tile_size=$1
+
+shift
+
+tiles=""
+targets=""
 
 mkdir -p tiles
 
-{
-	printf 'TILE='
+zoom=0
+while [ $# -gt 0 ]; do
+	declare -a size=($(echo "$1"|tr ',' ' '))
+	width=${size[0]}
+	height=${size[1]}
+	n=$(((width-1)/tile_size))
+	m=$(((height-1)/tile_size))
+
 	for i in $(seq 0 $n); do
 		for j in $(seq 0 $m); do
-			printf ' tile-%d-%d' $j $i
+			tiles="$tiles tile-$zoom-$j-$i"
 		done
 	done
-	echo
-
-	echo 'BMP=$(patsubst %,%.bmp,${TILE})'
-	echo 'PNG=$(patsubst %,%.png,${TILE})'
-	echo
-
-	echo '.PHONY: all clean'
-	echo
-
-	echo 'all: ${PNG}'
-	echo
-
-	echo '${PNG}: %.png: %.bmp'
-	echo '	convert $< $@'
-	echo
-
+	
 	for i in $(seq 0 $n); do
 		x=$(($i*$tile_size))
 		for j in $(seq 0 $m); do
 			y=$(($j*$tile_size))
-			printf 'tile-%d-%d.bmp:\n\t../mandelbrot %d %d $@ %d %d %d %d\n\n' \
-				$j $i $width $height $x $y $tile_size $tile_size
+
+			targets="$targets"$'\n'"tile-$zoom-$j-$i.bmp:"$'\n\t'"../madelbrot $width $height $x $y $tile_size $tile_size"$'\n'
 		done
 	done
 
-	echo 'clean:'
-	printf '\trm -f'
-	for i in $(seq 0 $n); do
-		for j in $(seq 0 $m); do
-			printf ' tile-%d-%d.png tile-%d-%d.bmp' $j $i $j $i
-		done
-	done
-	echo
-} > tiles/Makefile
+	shift
+	zoom=$((zoom+1))
+done
+
+cat > tiles/Makefile <<EOF
+TILE=$tiles
+BMP=\$(patsubst %,%.bmp,\${TILE})
+PNG=\$(patsubst %,%.png,\${TILE})
+
+.PHONY: all clean
+
+all: \${PNG}
+
+\${PNG}: %.png: %.bmp
+	convert \$< \$@
+$targets
+clean:
+	rm -f$(for tile in $tiles; do printf %s " $tile.bmp $tile.png"; done)
+EOF
