@@ -1,6 +1,22 @@
 var Pan = (function (undefined) {
 	"use strict";
 
+	var ANIM_DELAY = 30/1000;
+	var HAS_TOUCH = 'ontouchstart' in window && 'createTouch' in document;
+
+	function touchCenter (event) {
+		var x = 0;
+		var y = 0;
+		var touches = event.touches;
+		var n = touches.length;
+		for (var i = 0; i < n; ++ i) {
+			var touch = touches[i];
+			x += touch.clientX;
+			y += touch.clientY;
+		}
+		return {clientX: x/n, clientY: y/n};
+	}
+
 	var on = document.addEventListener ?
 		function (element, eventName, callback) {
 			element.addEventListener(eventName, callback, false);
@@ -66,7 +82,6 @@ var Pan = (function (undefined) {
 		};
 	}
 
-	// TODO: support touch
 	var elementEvents = {
 		mousedown: function (event) {
 			if (('buttons' in event ?
@@ -92,16 +107,50 @@ var Pan = (function (undefined) {
 		}
 	};
 
-	if ('onwheel' in document) {
+	if (HAS_TOUCH) {
+		elementEvents.touchstart = function (event) {
+			if (event.shiftKey || event.metaKey || event.ctrlKey || event.altKey) {
+				return;
+			}
+
+			addClass(this,'panning');
+			var pos = Pan.position(this);
+			var options = this._panning.options;
+			var z       = this._panning.zoom;
+			var scale   = options.imageSizes[options.imageSizes.length - 1][0] / options.imageSizes[z][0];
+			var touch   = touchCenter(event);
+			this._panning.start = {x: pos.x + touch.clientX*scale, y: pos.y + touch.clientY*scale, z: z};
+			this._panning.click = touch;
+		};
+	}
+
+	if (HAS_TOUCH) {
+		/* can't get this to work, so use taps instead
+		elementEvents.touchmove = function (event) {
+			var zoom = Math.round(Math.log(event.scale) / Math.LN2);
+			if (isNaN(zoom) || zoom < 0) {
+				zoom = 0;
+			}
+			else if (zoom >= this._panning.imageSizes.length) {
+				zoom = this._panning.imageSizes.length - 1;
+			}
+
+			if (event.scale !== 1.0) alert(event.scale);
+
+			var pos = Pan.eventPosition(this,touchCenter(event),zoom);
+			pan(this, pos);
+
+			event.preventDefault();
+		};
+		*/
+	}
+	else if ('onwheel' in document) {
 		elementEvents.wheel = function (event) {
-			for (var i = 0; i < viewers.length; ++ i) {
-				var element = viewers[i];
-				if (event.deltaY > 0) {
-					zoomOut(this,event);
-				}
-				else if (event.deltaY < 0) {
-					zoomIn(this,event);
-				}
+			if (event.deltaY > 0) {
+				zoomOut(this,event);
+			}
+			else if (event.deltaY < 0) {
+				zoomIn(this,event);
 			}
 			event.preventDefault();
 			event.stopPropagation();
@@ -110,14 +159,11 @@ var Pan = (function (undefined) {
 	else if ('onmousewheel' in document) {
 		elementEvents.mousewheel = function (event) {
 			var delta = 'wheelDeltaY' in event ? event.wheelDeltaY : event.wheelDelta;
-			for (var i = 0; i < viewers.length; ++ i) {
-				var element = viewers[i];
-				if (delta < 0) {
-					zoomOut(this,event);
-				}
-				else if (delta > 0) {
-					zoomIn(this,event);
-				}
+			if (delta < 0) {
+				zoomOut(this,event);
+			}
+			else if (delta > 0) {
+				zoomIn(this,event);
 			}
 			event.preventDefault();
 			event.stopPropagation();
@@ -125,14 +171,11 @@ var Pan = (function (undefined) {
 	}
 	else {
 		elementEvents.DOMMouseScroll = function (event) {
-			for (var i = 0; i < viewers.length; ++ i) {
-				var element = viewers[i];
-				if (event.detail > 0) {
-					zoomOut(this,event);
-				}
-				else if (event.detail < 0) {
-					zoomIn(this,event);
-				}
+			if (event.detail > 0) {
+				zoomOut(this,event);
+			}
+			else if (event.detail < 0) {
+				zoomIn(this,event);
 			}
 			event.preventDefault();
 			event.stopPropagation();
@@ -178,6 +221,60 @@ var Pan = (function (undefined) {
 		}
 	};
 
+	if (HAS_TOUCH) {
+		windowEvents.touchmove = function (event) {
+			var touch = touchCenter(event);
+			for (var i = 0; i < viewers.length; ++ i) {
+				var element = viewers[i];
+				var pos = null;
+				if (hasClass(element,'panning')) {
+					var options = element._panning.options;
+					var z       = element._panning.zoom;
+					var scale   = options.imageSizes[options.imageSizes.length - 1][0] / options.imageSizes[z][0];
+					var start   = element._panning.start;
+					pos = {x: start.x - touch.clientX*scale, y: start.y - touch.clientY*scale, z: z};
+				}
+				element._panning.moveTo = pos;
+				element._panning.click  = null;
+			}
+			if (moveTimer === null) {
+				moveTimer = setTimeout(moveCallback, ANIM_DELAY);
+			}
+			event.preventDefault();
+			event.stopPropagation();
+		};
+
+		windowEvents.touchend = function (event) {
+			for (var i = 0; i < viewers.length; ++ i) {
+				var element = viewers[i];
+				removeClass(element,'panning');
+				element._panning.start = null;
+				if (element._panning.click) {
+					var zoom = element._panning.zoom + 1;
+					if (zoom >= element._panning.options.imageSizes.length) {
+						zoom = 0;
+					}
+					var pos = Pan.eventPosition(element,element._panning.click,zoom);
+					pan(element, pos);
+					element._panning.click = null;
+				}
+			}
+			event.preventDefault();
+			event.stopPropagation();
+		};
+
+		windowEvents.touchcancel = function (event) {
+			for (var i = 0; i < viewers.length; ++ i) {
+				var element = viewers[i];
+				removeClass(element,'panning');
+				element._panning.start = null;
+				element._panning.click = null;
+			}
+			event.preventDefault();
+			event.stopPropagation();
+		};
+	}
+
 	for (var eventName in windowEvents) {
 		on(window, eventName, windowEvents[eventName]);
 	}
@@ -204,63 +301,83 @@ var Pan = (function (undefined) {
 		document.exitPointerLock ||
 		document.mozExitPointerLock ||
 		document.webkitExitPointerLock;
+	
+	var moveTimer = null;
 
-	var documentEvents = {
-		mousemove: function (event) {
-			var active = false;
-			var pointerLockElement =
-				document.pointerLockElement ||
-				document.webkitPointerLockElement ||
-				document.mozPointerLockElement;
+	function moveCallback () {
+		moveTimer = null;
+		for (var i = 0; i < viewers.length; ++ i) {
+			var element = viewers[i];
+			var pos = element._panning.moveTo;
+			if (pos) {
+				pan(element, pos);
+				element._panning.moveTo = null;
+			}
+		}
+	}
 
-			for (var i = 0; i < viewers.length; ++ i) {
-				var element = viewers[i];
-				if (hasClass(element,'panning')) {
-					active = true;
-					var options = element._panning.options;
-					var z       = element._panning.zoom;
-					var scale   = options.imageSizes[options.imageSizes.length - 1][0] / options.imageSizes[z][0];
+	if (!HAS_TOUCH) {
+		var documentEvents = {
+			mousemove: function (event) {
+				var active = false;
+				var pointerLockElement =
+					document.pointerLockElement ||
+					document.webkitPointerLockElement ||
+					document.mozPointerLockElement;
+
+				for (var i = 0; i < viewers.length; ++ i) {
+					var element = viewers[i];
+					var pos = null;
+					if (hasClass(element,'panning')) {
+						active = true;
+						var options = element._panning.options;
+						var z       = element._panning.zoom;
+						var scale   = options.imageSizes[options.imageSizes.length - 1][0] / options.imageSizes[z][0];
+						if (element === pointerLockElement) {
+							pos = Pan.position(element);
+							pos.x -= (event.movementX || event.webkitMovementX || event.mozMovementX || 0)*scale;
+							pos.y -= (event.movementY || event.webkitMovementY || event.mozMovementY || 0)*scale;
+						}
+						else {
+							var start = element._panning.start;
+							pos = {x: start.x - event.clientX*scale, y: start.y - event.clientY*scale, z: z};
+						}
+					}
+					element._panning.moveTo = pos;
+				}
+				if (moveTimer === null) {
+					moveTimer = setTimeout(moveCallback, ANIM_DELAY);
+				}
+			
+				if (active) {
+					event.preventDefault();
+					event.stopPropagation();
+				}
+			},
+			mouseup: function (event) {
+				var pointerLockElement =
+					document.pointerLockElement ||
+					document.webkitPointerLockElement ||
+					document.mozPointerLockElement;
+
+				for (var i = 0; i < viewers.length; ++ i) {
+					var element = viewers[i];
+					removeClass(element,'panning');
 					if (element === pointerLockElement) {
-						var pos = Pan.position(element);
-						var dx = (event.movementX || event.webkitMovementX || event.mozMovementX || 0)*scale;
-						var dy = (event.movementY || event.webkitMovementY || event.mozMovementY || 0)*scale;
-
-						pan(element, {x: pos.x - dx, y: pos.y - dy, z: z});
+						document.exitPointerLock();
+						pointerLockElement = null;
 					}
-					else {
-						var start = element._panning.start;
-						var pos = {x: start.x - event.clientX*scale, y: start.y - event.clientY*scale, z: z};
-						pan(element, pos);
-					}
+					element._panning.start = null;
 				}
-			}
-			if (active) {
-				event.preventDefault();
-				event.stopPropagation();
-			}
-		},
-		mouseup: function (event) {
-			var pointerLockElement =
-				document.pointerLockElement ||
-				document.webkitPointerLockElement ||
-				document.mozPointerLockElement;
+			},
+			pointerlockchange: pointerLockChanged,
+			webkitpointerlockchange: pointerLockChanged,
+			mozpointerlockchange: pointerLockChanged
+		};
 
-			for (var i = 0; i < viewers.length; ++ i) {
-				var element = viewers[i];
-				removeClass(element,'panning');
-				if (element === pointerLockElement) {
-					document.exitPointerLock();
-					pointerLockElement = null;
-				}
-			}
-		},
-		pointerlockchange: pointerLockChanged,
-		webkitpointerlockchange: pointerLockChanged,
-		mozpointerlockchange: pointerLockChanged
-	};
-
-	for (var eventName in documentEvents) {
-		on(document, eventName, documentEvents[eventName]);
+		for (var eventName in documentEvents) {
+			on(document, eventName, documentEvents[eventName]);
+		}
 	}
 
 	function format (fmt, map) {
@@ -444,7 +561,8 @@ var Pan = (function (undefined) {
 				options: options,
 				images:  {},
 				size:    {width: element.offsetWidth, height: element.offsetHeight},
-				zoom:    0
+				zoom:    0,
+				moveTo:  null
 			};
 
 			var panner = document.createElement('div');
