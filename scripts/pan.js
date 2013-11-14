@@ -1,7 +1,7 @@
 var Pan = (function (undefined) {
 	"use strict";
 
-	var ANIM_DELAY = 30/1000;
+	var ANIM_DELAY = 1000/60;
 	var HAS_TOUCH = 'ontouchstart' in window && 'createTouch' in document;
 
 	function touchCenter (event) {
@@ -334,7 +334,7 @@ var Pan = (function (undefined) {
 						var z       = element._panning.zoom;
 						var scale   = options.imageSizes[options.imageSizes.length - 1][0] / options.imageSizes[z][0];
 						if (element === pointerLockElement) {
-							pos = Pan.position(element);
+							pos = element._panning.moveTo || Pan.position(element);
 							pos.x -= (event.movementX || event.webkitMovementX || event.mozMovementX || 0)*scale;
 							pos.y -= (event.movementY || event.webkitMovementY || event.mozMovementY || 0)*scale;
 						}
