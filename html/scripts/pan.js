@@ -475,16 +475,15 @@ var Pan = (function (undefined) {
 				var src = format(pattern, fmtargs);
 				tagged[src] = true;
 				if (!imgs.hasOwnProperty(src)) {
-					var img  = new Image();
+					var img  = document.createElement('div');
 					var imgx = i*tileSize;
 					var imgy = j*tileSize;
-					img.src  = src;
+					img.style.backgroundImage = 'url('+src+')';
 					img.style.position = 'absolute';
 					img.style.width  = Math.min(tileSize,imageWidth  - imgx)+'px';
 					img.style.height = Math.min(tileSize,imageHeight - imgy)+'px';
 					img.style.left   = imgx+'px';
 					img.style.top    = imgy+'px';
-					img.draggable    = false;
 					panner.appendChild(img);
 					imgs[src] = img;
 				}
