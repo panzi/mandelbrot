@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+<title>Mandelbrot</title>
+<meta name="viewport" content="width=device-width,user-scalable=no,minimum-scale=1,maximum-scale=1,initial-scale=1"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+<meta name="apple-mobile-web-app-title" content="Mandelbrot" />
+<link rel="stylesheet" href="styles/pan.css"/>
+<style type="text/css">
+html, body {
+	margin: 0;
+	padding: 0;
+	background: black;
+	overflow: hidden;
+}
+</style>
+<script type="text/javascript" src="scripts/polyfill.js"></script>
+<script type="text/javascript" src="scripts/pan.js"></script>
+<script type="text/javascript">
+// <![CDATA[
+window.onload = function () {
+	Pan.create('#viewer', {
+		tilePattern: 'tiles/tile-{zoom}-{y}-{x}.png',
+		tileSize: 320,
+		imageSizes: "960,540 1920,1080 3840,2160 7680,4320 15360,8640 30720,17280 61440,34560".trim().split(/\s+/).map(function (size) {
+			return size.split(",").map(Number);
+		}),
+		hash: true
+	});
+};
+// ]]>
+</script>
+</head>
+<body scroll="no">
+<div id="viewer" class="imageViewer"></div>
+</body>
+</html>
