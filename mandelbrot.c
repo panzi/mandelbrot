@@ -5,21 +5,24 @@
 #include <stdio.h>
 #include <complex.h>
 
-double complex Y(double complex V, double complex B, double complex c) {
+double complex Y(double complex V, double complex B, int c) {
 	return (cabs(V) < 6) ?
 		(c ? Y(V*V + B, B, c-1) : c) :
 		(2 + c - 4 * cpow(cabs(V), -0.4)) / 255;
 }
 
 int main(int argc, char *argv[]) {
-	if (argc < 4) return 1;
+	if (argc < 4) {
+		fprintf(stderr,"illegal number of arguments\n");
+		return 1;
+	}
 	unsigned int w = strtoul(argv[1],NULL,10), h = strtoul(argv[2],NULL,10), A,
 		x1 = 0, x2 = w, y1 = 0, y2 = h, x, y, iw = w, ih = h;
-	if (!w || w >= 0xffff || w % 4 != 0) {
+	if (!w || w % 4 != 0) {
 		fprintf(stderr,"illegal width: %s\n", argv[1]);
 		return 1;
 	}
-	if (!h || h >= 0xffff) {
+	if (!h) {
 		fprintf(stderr,"illegal height: %s\n", argv[2]);
 		return 1;
 	}
@@ -36,14 +39,6 @@ int main(int argc, char *argv[]) {
 			fprintf(stderr,"illegal x: %s\n", argv[5]);
 			return 1;
 		}
-		if (!iw || iw >= 0xffff) {
-			fprintf(stderr,"illegal area width: %s\n", argv[6]);
-			return 1;
-		}
-		if (!ih || ih >= 0xffff) {
-			fprintf(stderr,"illegal area height: %s\n", argv[7]);
-			return 1;
-		}
 		x2 = x1 + iw;
 		y2 = y1 + ih;
 		if (x2 > w) {
@@ -54,6 +49,14 @@ int main(int argc, char *argv[]) {
 			y2 = h;
 			ih = y2 - y1;
 		}
+	}
+	if (!iw || iw >= 0xffff) {
+		fprintf(stderr,"illegal area width: %s\n", argv[6]);
+		return 1;
+	}
+	if (!ih || ih >= 0xffff) {
+		fprintf(stderr,"illegal area height: %s\n", argv[7]);
+		return 1;
 	}
 	unsigned int S = (iw*ih)*3+26, hhalf = h/2;
 	FILE *f = fopen(argv[3],"wb");
